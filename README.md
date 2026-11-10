@@ -103,7 +103,3 @@ Tools: `display_start`, `display_stop`, `display_list`, `app_launch`, `app_move`
 - If "Displays have separate Spaces" is on, the virtual display gets its own menu bar and Space, which is usually what you want.
 - Pid-targeted mouse clicks are not honored by every app (some games, Electron/Chromium surfaces). Prefer `ax-press`, `ax-set-value` and `key`.
 - Some apps re-activate themselves on launch. That is the app's behavior; `launch` itself never activates.
-
-## License
-
-MIT
