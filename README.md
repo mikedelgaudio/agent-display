@@ -34,7 +34,7 @@ The display exists only while its small host process runs. `stop` (or killing th
 Requires macOS 14+ and Xcode command line tools.
 
 ```sh
-git clone https://github.com/<you>/agent-display.git
+git clone https://github.com/mikedelgaudio/agent-display.git
 cd agent-display
 ./scripts/install.sh          # builds release and copies to /usr/local/bin (or ~/.local/bin)
 agent-display permissions --prompt
