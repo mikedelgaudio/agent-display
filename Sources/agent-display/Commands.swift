@@ -10,6 +10,10 @@ struct Param {
     init(_ name: String, _ type: String = "string", required: Bool = false, _ help: String) {
         self.name = name; self.type = type; self.required = required; self.help = help
     }
+    /// Optional string parameter: Param("name", "help text").
+    init(_ name: String, _ help: String) {
+        self.init(name, "string", required: false, help)
+    }
 }
 
 struct Command {
