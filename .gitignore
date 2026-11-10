@@ -1,0 +1,6 @@
+.build/
+.swiftpm/
+*.xcodeproj
+DerivedData/
+agent-display-*.png
+.DS_Store
