@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-let toolVersion = "0.1.0"
+let toolVersion = "0.1.1"
 
 struct ToolError: Error, CustomStringConvertible {
     let description: String
