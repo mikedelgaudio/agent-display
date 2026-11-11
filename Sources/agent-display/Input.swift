@@ -74,8 +74,13 @@ enum Input {
     }
 
     /// Click at (x, y) in points relative to --display (default: the agent display),
-    /// or relative to the app's window when --window is given. Best effort: most
-    /// Cocoa apps accept pid-targeted mouse events, some ignore them. Prefer ax-press.
+    /// or relative to the app's window when --window is given. Prefer ax-press.
+    ///
+    /// A raw CGEvent sent with postToPid reaches the app with windowNumber 0, because
+    /// it skips the WindowServer step that tags events with the window under the
+    /// cursor, so AppKit drops it. Building the event as an NSEvent carrying the target
+    /// window's number fixes that. AppKit then reads `location` as window-local but
+    /// measured against the main display's height, hence the y adjustment below.
     static func click(_ a: Args) async throws -> Output {
         let target = try pid(a)
         guard let x = a.double("x"), let y = a.double("y") else { throw ToolError("pass --x and --y (points)") }
@@ -88,17 +93,40 @@ enum Input {
             origin = CGDisplayBounds(try resolveDisplay(a.str("display") ?? "Agent Display")).origin
         }
         let p = CGPoint(x: origin.x + x, y: origin.y + y)
+        guard let (windowID, bounds) = windowUnder(p, pid: target) else {
+            throw ToolError("no window of pid \(target) at global point (\(Int(p.x)), \(Int(p.y)))")
+        }
+        let mainHeight = CGDisplayBounds(CGMainDisplayID()).height
+        let loc = NSPoint(x: p.x - bounds.minX, y: mainHeight - (p.y - bounds.minY))
         let right = a.str("button") == "right"
-        let (downT, upT): (CGEventType, CGEventType) = right ? (.rightMouseDown, .rightMouseUp) : (.leftMouseDown, .leftMouseUp)
+        let (downT, upT): (NSEvent.EventType, NSEvent.EventType) = right ? (.rightMouseDown, .rightMouseUp) : (.leftMouseDown, .leftMouseUp)
         let count = max(1, a.int("count") ?? 1)
         for n in 1...count {
             for t in [downT, upT] {
-                guard let ev = CGEvent(mouseEventSource: nil, mouseType: t, mouseCursorPosition: p, mouseButton: right ? .right : .left) else { continue }
-                ev.setIntegerValueField(.mouseEventClickState, value: Int64(n))
+                guard let ev = NSEvent.mouseEvent(
+                    with: t, location: loc, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: windowID,
+                    context: nil, eventNumber: 0, clickCount: n, pressure: t == downT ? 1 : 0
+                )?.cgEvent else { continue }
                 ev.postToPid(target)
                 try await Task.sleep(nanoseconds: 20_000_000)
             }
         }
-        return .json(["ok": true, "pid": Int(target), "globalPoint": ["x": Double(p.x), "y": Double(p.y)]])
+        return .json(["ok": true, "pid": Int(target), "windowID": windowID,
+                      "globalPoint": ["x": Double(p.x), "y": Double(p.y)]])
+    }
+
+    /// Frontmost normal-level window owned by `pid` that contains global point `p`.
+    static func windowUnder(_ p: CGPoint, pid: pid_t) -> (Int, CGRect)? {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
+        for info in list { // front to back
+            guard (info[kCGWindowOwnerPID as String] as? Int32) == pid,
+                  (info[kCGWindowLayer as String] as? Int) == 0,
+                  let id = info[kCGWindowNumber as String] as? Int,
+                  let bd = info[kCGWindowBounds as String] as? NSDictionary,
+                  let r = CGRect(dictionaryRepresentation: bd), r.contains(p) else { continue }
+            return (id, r)
+        }
+        return nil
     }
 }

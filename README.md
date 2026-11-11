@@ -101,5 +101,5 @@ Tools: `display_start`, `display_stop`, `display_list`, `app_launch`, `app_move`
 - `CGVirtualDisplay` is **private, undocumented API**. It has worked since macOS 11 and is used by several shipping apps, but Apple could change it. Not App Store safe (this is a dev tool, so that is fine).
 - macOS has one global cursor. The agent never moves it, but you *can* move your own cursor onto the virtual display. `--position` (default `right`) puts it at the edge of your arrangement to make that less likely.
 - If "Displays have separate Spaces" is on, the virtual display gets its own menu bar and Space, which is usually what you want.
-- Pid-targeted mouse clicks are not honored by every app (some games, Electron/Chromium surfaces). Prefer `ax-press`, `ax-set-value` and `key`.
+- Pid-targeted mouse clicks work in native AppKit and SwiftUI apps but are not honored by every app (some games, Electron/Chromium surfaces). Prefer `ax-press`, `ax-set-value` and `key`.
 - Some apps re-activate themselves on launch. That is the app's behavior; `launch` itself never activates.
